@@ -10,6 +10,7 @@ $username = trim($_POST['username'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirmPassword = $_POST['confirm_password'] ?? '';
+$role = 'student';
 
 if ($fullName === '' || $username === '' || $email === '' || $password === '' || $confirmPassword === '') {
     redirectWithMessage('register.html', 'error', 'Please complete all fields.');
@@ -38,13 +39,19 @@ if ($stmt->fetch()) {
 }
 
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+$displayPassword = $password;
+$grades = json_encode(generateRandomGrades());
+$nowExpression = dbNowExpression();
 
-$insert = $pdo->prepare('INSERT INTO users (fullname, username, password, email, created_at) VALUES (:fullname, :username, :password, :email, NOW())');
+$insert = $pdo->prepare('INSERT INTO users (fullname, username, password, display_password, email, role, grades, created_at) VALUES (:fullname, :username, :password, :display_password, :email, :role, :grades, ' . $nowExpression . ')');
 $insert->execute([
     ':fullname' => $fullName,
     ':username' => $username,
     ':password' => $hashedPassword,
+    ':display_password' => $displayPassword,
     ':email' => $email,
+    ':role' => $role,
+    ':grades' => $grades,
 ]);
 
 $_SESSION['user'] = [
@@ -52,6 +59,8 @@ $_SESSION['user'] = [
     'fullname' => $fullName,
     'username' => $username,
     'email' => $email,
+    'role' => $role,
+    'grades' => decodeGrades($grades),
 ];
 
 header('Location: dashboard.php');
